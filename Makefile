@@ -1,127 +1,105 @@
-include ${.CURDIR}/config.mk
+default: all
+##############################################################
+include submodules/c_deps/etc/tools.mk
+##############################################################
+DIR=$(shell $(PWD))
+M1_DIR=$(DIR)
+LOADER_DIR=$(DIR)/loader
+EMBEDS_DIR=$(DIR)/embeds
+VENDOR_DIR=$(DIR)/vendor
+PROJECT_DIR=$(DIR)
+MESON_DEPS_DIR=$(DIR)/meson/deps
+VENDOR_DIR=$(DIR)/vendor
+DEPS_DIR=$(DIR)/deps
+BUILD_DIR=$(DIR)/build
+ETC_DIR=$(DIR)/etc
+MENU_DIR=$(DIR)/menu
+DOCKER_DIR=$(DIR)/docker
+LIST_DIR=$(DIR)/list
+SOURCE_VENV_CMD=$(DIR)/scripts
+VENV_DIR=$(DIR)/.venv
+SCRIPTS_DIR=$(DIR)/scripts
+ACTIVE_APP_DIR=$(DIR)/active-window
+SOURCE_VENV_CMD = source $(VENV_DIR)/bin/activate
+##############################################################
+TIDIED_FILES = \
+			   */*.h */*.c
+##############################################################
+include submodules/c_deps/etc/includes.mk
+all: build test
 
-VERSION=	4.0.0
+build-meson: 
 
-PROG=	pick
+do-meson: do-meson-build
+meson-build: build-meson
+build-meson: do-meson-build do-build
+do-meson-build:
+	@eval cd . && {  meson build || { meson build --reconfigure || { meson build --wipe; } && meson build; }; }
+do-install: all
+	@meson install -C build
+do-build:
+	@meson compile -C build
+do-test:
+	@passh meson test -C build -v --print-errorlogs
+install: do-install
+test: do-test
+build: do-meson do-build muon
+rm-make-logs:
+	@rm .make-log* 2>/dev/null||true
 
-SRCS+=	compat-pledge.c
-SRCS+=	compat-reallocarray.c
-SRCS+=	compat-strtonum.c
-SRCS+=	pick.c
+dev-all: all
 
-OBJS=	${SRCS:.c=.o}
-DEPS=	${SRCS:.c=.d}
+pull:
+	@git pull
 
-KNFMT+=	compat-pledge.c
-KNFMT+=	pick.c
 
-PROG_pty=	pty
+dev: nodemon
+nodemon:
+	@$(NODEMON) \
+		--delay .3 \
+		-w "*/*.c" -w "*/*.h" -w Makefle -w "*/meson.build" \
+		-e c,h,sh,Makefile,build \
+		-i build \
+		-i build -i build-meson \
+		-i submodules \
+		-i .utils \
+		-i .git \
+			-x sh -- --norc --noprofile -c 'clear;make||true'
+do-pull-submodules-cmds:
+	@command find submodules -type d -maxdepth 1|xargs -I % echo -e "sh -c 'cd % && git pull'"
+run-binary:
+	@clear; make meson-binaries | env FZF_DEFAULT_COMMAND= \
+		fzf --reverse \
+			--preview-window='follow,wrap,right,80%' \
+			--bind 'ctrl-b:preview(make meson-build)' \
+			--preview='env bash -c {} -v -a' \
+			--ansi --border \
+			--cycle \
+			--header='Select Test Binary' \
+			--height='100%' \
+	| xargs -I % env bash -c "./%"
+run-binary-nodemon:
+	@make meson-binaries | fzf --reverse | xargs -I % nodemon -w build --delay 1000 -x passh "./%"
+meson-tests-list:
+	@meson test -C build --list
+meson-tests:
+	@{ make meson-tests-list; } |fzf \
+		--reverse \
+		--bind 'ctrl-b:preview(make meson-build)' \
+		--bind 'ctrl-t:preview(make meson-tests-list)'\
+		--bind 'ctrl-l:reload(make meson-tests-list)'\
+		--bind 'ctrl-k:preview(make clean meson-build)'\
+		--bind 'ctrl-y:preview-half-page-up'\
+		--bind 'ctrl-u:preview-half-page-down'\
+		--bind 'ctrl-/:change-preview-window(right,80%|down,90%,border-horizontal)' \
+		--preview='\
+			meson test --num-processes 1 -C build -v \
+				--no-stdsplit --print-errorlogs {}' \
+		--preview-window='follow,wrap,bottom,85%' \
+        --ansi \
+		--header='Select Test Case |ctrl+b:rebuild project|ctrl+k:clean build|ctrl+t:list tests|ctrl+l:reload test list|ctrl+/:toggle preview style|ctrl+y/u:scroll preview|'\
+		--header-lines=0 \
+        --height='100%'
 
-SRCS_pty+=	compat-reallocarray.c
-SRCS_pty+=	pty.c
-
-OBJS_pty=	${SRCS_pty:.c=.o}
-DEPS_pty=	${SRCS_pty:.c=.d}
-
-KNFMT+=	pty.c
-
-DISTFILES+=	CHANGELOG.md
-DISTFILES+=	CODE_OF_CONDUCT.md
-DISTFILES+=	CONTRIBUTING.md
-DISTFILES+=	GNUmakefile
-DISTFILES+=	LICENSE
-DISTFILES+=	Makefile
-DISTFILES+=	README.md
-DISTFILES+=	compat-pledge.c
-DISTFILES+=	compat-reallocarray.c
-DISTFILES+=	compat-strtonum.c
-DISTFILES+=	configure
-DISTFILES+=	pick.1
-DISTFILES+=	pick.c
-DISTFILES+=	pty.c
-DISTFILES+=	tests/GNUmakefile
-DISTFILES+=	tests/Makefile
-DISTFILES+=	tests/key-alt-enter.sh
-DISTFILES+=	tests/key-backspace.sh
-DISTFILES+=	tests/key-ctrl-a.sh
-DISTFILES+=	tests/key-ctrl-c.sh
-DISTFILES+=	tests/key-ctrl-e.sh
-DISTFILES+=	tests/key-ctrl-k.sh
-DISTFILES+=	tests/key-ctrl-l.sh
-DISTFILES+=	tests/key-ctrl-o.sh
-DISTFILES+=	tests/key-ctrl-u.sh
-DISTFILES+=	tests/key-ctrl-w.sh
-DISTFILES+=	tests/key-del.sh
-DISTFILES+=	tests/key-end.sh
-DISTFILES+=	tests/key-enter.sh
-DISTFILES+=	tests/key-home.sh
-DISTFILES+=	tests/key-left.sh
-DISTFILES+=	tests/key-line-down.sh
-DISTFILES+=	tests/key-line-up.sh
-DISTFILES+=	tests/key-page-down.sh
-DISTFILES+=	tests/key-page-up.sh
-DISTFILES+=	tests/key-printable.sh
-DISTFILES+=	tests/key-right.sh
-DISTFILES+=	tests/key-unknown.sh
-DISTFILES+=	tests/misc-match.sh
-DISTFILES+=	tests/misc-realloc.sh
-DISTFILES+=	tests/opt-d.sh
-DISTFILES+=	tests/opt-k.sh
-DISTFILES+=	tests/opt-o.sh
-DISTFILES+=	tests/opt-q.sh
-DISTFILES+=	tests/opt-s.sh
-DISTFILES+=	tests/opt-unknown.sh
-DISTFILES+=	tests/opt-x.sh
-DISTFILES+=	tests/t.sh
-DISTFILES+=	tests/util.sh
-DISTFILES+=	tests/valgrind.supp
-
-all: ${PROG}
-
-${PROG}: ${OBJS}
-	${CC} ${DEBUG} -o ${PROG} ${OBJS} ${LDFLAGS}
-
-${PROG_pty}: ${OBJS_pty}
-	${CC} ${DEBUG} -o ${PROG_pty} ${OBJS_pty} ${LDFLAGS}
-
-clean:
-	rm -f ${DEPS} ${OBJS} ${PROG} \
-		${DEPS_pty} ${OBJS_pty} ${PROG_pty}
-.PHONY: clean
-
-dist:
-	set -e; \
-	d=${PROG}-${VERSION}; \
-	mkdir $$d; \
-	for f in ${DISTFILES}; do \
-		mkdir -p $$d/`dirname $$f`; \
-		cp -p ${.CURDIR}/$$f $$d/$$f; \
-	done; \
-	find $$d -type d -exec touch -r ${.CURDIR}/Makefile {} \;; \
-	tar czvf ${.CURDIR}/$$d.tar.gz $$d; \
-	(cd ${.CURDIR}; sha256 $$d.tar.gz >$$d.sha256); \
-	rm -r $$d
-.PHONY: dist
-
-format:
-	cd ${.CURDIR} && knfmt -i ${KNFMT}
-.PHONY: format
-
-install: all
-	@mkdir -p ${DESTDIR}${BINDIR}
-	${INSTALL} ${PROG} ${DESTDIR}${BINDIR}
-	@mkdir -p ${DESTDIR}${MANDIR}/man1
-	${INSTALL_MAN} ${.CURDIR}/pick.1 ${DESTDIR}${MANDIR}/man1
-.PHONY: install
-
-lint:
-	cd ${.CURDIR} && knfmt -d ${KNFMT}
-.PHONY: lint
-
-test: ${PROG} ${PROG_pty}
-	${MAKE} -C ${.CURDIR}/tests \
-		"PICK=${.OBJDIR}/${PROG}" \
-		"PTY=${.OBJDIR}/${PROG_pty}"
-.PHONY: test
-
--include ${DEPS}
+keybinds-yaml-to-json:
+	@cat etc/keybinds.yaml|yaml2json |jq |tee etc/keybinds.json

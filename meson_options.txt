@@ -1,0 +1,18 @@
+option('ttyrescue-path', type : 'string', value : '/usr/libexec')
+option('enable-binaries',
+  type : 'boolean',
+  value : true,
+  description : 'Enables binaries.'
+)
+option('enable-keylogger-config-tests',
+  type : 'boolean',
+  value : false,
+  description : 'Enables keylogger config tests.'
+)
+
+option('enable-binary-tests',
+  type : 'boolean',
+  value : false,
+  description : 'Enables binary tests.'
+)
+
