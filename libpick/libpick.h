@@ -13,18 +13,18 @@ struct choices_t {
   struct choice_t *v;
 };
 struct choice_t {
-  const char *description;
-  const char *string;
-  size_t     length;
-  ssize_t    match_start;               /* inclusive match start offset */
-  ssize_t    match_end;                 /* exclusive match end offset */
-  double     score;
+  char    *description;
+  char    *string;
+  size_t  length;
+  ssize_t match_start;                  /* inclusive match start offset */
+  ssize_t match_end;                    /* exclusive match end offset */
+  double  score;
 };
 struct pick_ctx_t {
   struct choices_t choices;
   struct choice_t  choice;
-  struct Vector *choices_s_v;
-  char             *description_seperator;
+  struct Vector    *choices_s_v;
+  char             description_seperator;
 };
 /////////////////////////////////////////////////////////////////////////////
 char *do_pick(struct pick_ctx_t *CTX);

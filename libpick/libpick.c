@@ -14,22 +14,11 @@
 #include <wchar.h>
 #include <wctype.h>
 //////////////////////////////////////////////
-#include "libpick.h"
+#include "c_stringfn/include/stringfn.h"
 #include "c_vector/include/vector.h"
+#include "libpick.h"
+#include "log.h/log.h"
 //////////////////////////////////////////////
-struct pick_ctx_t pick_ctx = {
-  .description_seperator = "|",
-  .choice                = {
-    .string      = NULL,
-    .description = NULL,
-    .length      = 0,
-  },
-  .choices               = {
-    .size   = 0,
-    .length = 0,
-    .v      = NULL,
-  },
-};
 //////////////////////////////////////////////
 enum key {
   UNKNOWN   = 0,
@@ -60,9 +49,8 @@ enum key {
 
 static int                       choicecmp(const void *, const void *);
 static void                      delete_between(char *, size_t, size_t, size_t);
-static char *eager_strpbrk(const char *, const char *);
 static int                       filter_choices(size_t);
-static char *get_choices(void);
+void load_choices(struct pick_ctx_t *CTX);
 static enum key                  get_key(const char **);
 static void                      handle_sigwinch(int);
 static int                       isu8cont(unsigned char);
@@ -82,7 +70,6 @@ static const char *tty_parm1(char *, int);
 static int                       tty_putc(int);
 static void                      tty_restore(int);
 static void                      tty_size(void);
-static __dead void               usage(void);
 static int                       xmbtowc(wchar_t *, const char *);
 
 static struct termios        tio;
@@ -100,13 +87,15 @@ static int                   use_keypad           = 1;
 
 struct pick_ctx_t *pick_init_ctx(){
   struct pick_ctx_t *C = malloc(sizeof(struct pick_ctx_t));
-  C->choices_s_v = vector_new();
-  C->description_seperator = "|";
+
+  C->choices_s_v           = vector_new();
+  C->description_seperator = '|';
   return(C);
 }
+
+
 char *do_pick(struct pick_ctx_t *CTX){
   const struct choice_t *choice;
-  char                  *input;
   int                   c;
   int                   output_description = 0;
   int                   rc                 = 0;
@@ -125,118 +114,56 @@ char *do_pick(struct pick_ctx_t *CTX){
     }
   }
 
-  input = get_choices();
+  load_choices(CTX);
   tty_init(1);
 
   if (pledge("stdio tty", NULL) == -1) {
     err(1, "pledge");
   }
 
+  char *picked = NULL;
+
   choice = selected_choice();
   tty_restore(1);
   if (choice != NULL) {
-    char *picked = strdup(choice->string);
-    return(picked);
+    picked = strdup(choice->string);
+    goto done;
   } else {
     rc = 1;
   }
+done:
+  if (choices.v) {
+    free(choices.v);
+  }
+  if (query) {
+    free(query);
+  }
 
-  free(input);
-  free(choices.v);
-  free(query);
+  struct StringFNStrings choice_split = stringfn_split(picked, CTX->description_seperator);
 
-  return(NULL);
+  if (choice_split.count > 1) {
+    picked = strdup(stringfn_mut_trim(choice_split.strings[0]));
+    stringfn_release_strings_struct(choice_split);
+  }
+  return(picked);
 } /* do_pick */
 
 
-__dead void usage(void) {
-  fprintf(stderr, "usage: pick [-dKoSXx] [-q query]\n");
-  exit(1);
-}
-
-
-char *get_choices(void) {
-  char    *buf, *description, *ifs, *start, *stop;
-  ssize_t n;
-  size_t  length = 0;
-  size_t  size   = BUFSIZ;
-
-  if ((ifs = getenv("IFS")) == NULL || *ifs == '\0') {
-    ifs = " ";
+void load_choices(struct pick_ctx_t *CTX){
+  choices.length = vector_size(CTX->choices_s_v);
+  choices.v      = reallocarray(NULL, choices.length, sizeof(struct choice_t));
+  choices.size   = sizeof(struct choice_t) * choices.length;
+  for (size_t i = 0; i < vector_size(CTX->choices_s_v); i++) {
+    char            *c = (char *)vector_get(CTX->choices_s_v, i);
+    struct choice_t *C = malloc(sizeof(struct choice_t));
+    C->string      = c;
+    C->description = "";
+    C->length      = strlen(C->string);
+    C->score       = 0;
+    C->match_start = -1;
+    C->match_end   = -1;
+    choices.v[i]   = *C;
   }
-
-  if ((buf = malloc(size)) == NULL) {
-    err(1, NULL);
-  }
-  for ( ;;) {
-    if ((n = read(STDIN_FILENO, buf + length, size - length)) == -1) {
-      err(1, "read");
-    }else if (n == 0) {
-      break;
-    }
-
-    length += n;
-    if (length + 1 < size) {
-      continue;
-    }
-    if ((buf = reallocarray(buf, 2, size)) == NULL) {
-      err(1, NULL);
-    }
-    size *= 2;
-  }
-  buf[length] = '\0';
-
-  choices.size = 16;
-  if ((choices.v = reallocarray(NULL, choices.size,
-                                sizeof(struct choice_t))) == NULL) {
-    err(1, NULL);
-  }
-
-  start = buf;
-  while ((stop = strchr(start, '\n')) != NULL) {
-    *stop = '\0';
-
-    if (descriptions && (description = eager_strpbrk(start, ifs))) {
-      *description++ = '\0';
-    }else{
-      description = "";
-    }
-
-    choices.v[choices.length].length      = stop - start;
-    choices.v[choices.length].string      = start;
-    choices.v[choices.length].description = description;
-    choices.v[choices.length].match_start = -1;
-    choices.v[choices.length].match_end   = -1;
-    choices.v[choices.length].score       = 0;
-
-    start = stop + 1;
-
-    /* Ensure room for a extra choice when ALT_ENTER is invoked. */
-    if (++choices.length + 1 < choices.size) {
-      continue;
-    }
-    choices.size *= 2;
-    if ((choices.v = reallocarray(choices.v, choices.size,
-                                  sizeof(struct choice_t))) == NULL) {
-      err(1, NULL);
-    }
-  }
-
-  return(buf);
-} /* get_choices */
-
-
-char *eager_strpbrk(const char *string, const char *separators) {
-  char *tmp_ptr;
-  char *ptr = NULL;
-
-  for (tmp_ptr = strpbrk(string, separators);
-       tmp_ptr;
-       tmp_ptr = strpbrk(tmp_ptr, separators)) {
-    ptr = tmp_ptr++;
-  }
-
-  return(ptr);
 }
 
 const struct choice_t *selected_choice(void){
