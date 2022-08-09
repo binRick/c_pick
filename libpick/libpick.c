@@ -98,19 +98,15 @@ char *do_pick_single(struct pick_ctx_t *CTX){
   CTX->mutliple = false;
   struct Vector *V = do_pick(CTX);
   char          *s = NULL;
-  printf("single> vector len: %lu\n", vector_size(V));
   if (vector_size(V) > 0) {
     s = vector_get(V, 0);
   }
-  printf("single> %s\n", s);
 
   return(s);
 }
 struct Vector *do_pick_multiple(struct pick_ctx_t *CTX){
   CTX->mutliple = true;
-  struct Vector *V = do_pick(CTX);
-  printf("multiple> vector len: %lu\n", vector_size(V));
-  return(V);
+  return(do_pick(CTX));
 }
 
 struct pick_ctx_t *pick_init_ctx(){
@@ -135,37 +131,25 @@ static char *strip_picked_desc(struct pick_ctx_t *CTX, char *s){
 }
 
 static struct Vector *do_pick(struct pick_ctx_t *CTX){
-  struct Vector         *V = vector_new();
+  char                  *picked = NULL;
+  struct Vector         *V      = vector_new();
   const struct choice_t *choice;
-  int                   c;
-  int                   output_description = 0;
-  int                   rc                 = 0;
 
   setlocale(LC_CTYPE, "");
-
-  if (pledge("stdio tty rpath wpath cpath", NULL) == -1) {
-    err(1, "pledge");
-  }
-
-
   if (query == NULL) {
     query_size = 64;
     if ((query = calloc(query_size, sizeof(char))) == NULL) {
       err(1, NULL);
     }
   }
-
-  load_choices(CTX);
-  tty_init(1);
-
-  if (pledge("stdio tty", NULL) == -1) {
-    err(1, "pledge");
+  {
+    load_choices(CTX);
   }
-
-  char *picked = NULL;
-
-  choice = selected_choice(CTX);
-  tty_restore(1);
+  {
+    tty_init(1);
+    choice = selected_choice(CTX);
+    tty_restore(1);
+  }
   if (true == CTX->mutliple && choices.length > 0) {
     for ( size_t i = 0; i < choices.length; i++ ) {
       if (choices.v[i].mark) {
@@ -173,10 +157,8 @@ static struct Vector *do_pick(struct pick_ctx_t *CTX){
       }
     }
   }
-  if (vector_size(V) == 0) {
-    if (choice != NULL) {
-      vector_push(V, strip_picked_desc(CTX, strdup(choice->string)));
-    }
+  if (vector_size(V) == 0 && choice != NULL) {
+    vector_push(V, strip_picked_desc(CTX, strdup(choice->string)));
   }
 
   if (choices.v) {
