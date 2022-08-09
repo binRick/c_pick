@@ -1,4 +1,21 @@
+#include "config.h"
+#include <ctype.h>
+#include <err.h>
+#include <limits.h>
+#include <locale.h>
+#include <poll.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
+#include <wchar.h>
+#include <wctype.h>
+//////////////////////////////////////////////
 #include "libpick.h"
+#include "c_vector/include/vector.h"
 //////////////////////////////////////////////
 struct pick_ctx_t pick_ctx = {
   .description_seperator = "|",
@@ -81,6 +98,12 @@ static int                   use_alternate_screen = 1;
 static int                   use_keypad           = 1;
 
 
+struct pick_ctx_t *pick_init_ctx(){
+  struct pick_ctx_t *C = malloc(sizeof(struct pick_ctx_t));
+  C->choices_s_v = vector_new();
+  C->description_seperator = "|";
+  return(C);
+}
 char *do_pick(struct pick_ctx_t *CTX){
   const struct choice_t *choice;
   char                  *input;

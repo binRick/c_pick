@@ -1,4 +1,5 @@
 #include "config.h"
+#include "libpick/pty.h"
 
 #include <sys/ioctl.h>
 #include <sys/select.h>

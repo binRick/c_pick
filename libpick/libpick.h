@@ -1,22 +1,10 @@
-#include "config.h"
-#include <ctype.h>
-#include <err.h>
-#include <limits.h>
-#include <locale.h>
-#include <poll.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <termios.h>
 #include <unistd.h>
-#include <wchar.h>
-#include <wctype.h>
-#define tty_putp(capability, fatal)    do {                 \
-    if (tputs((capability), 1, tty_putc) == ERR && (fatal)) \
-    errx(1, #capability ": unknown terminfo capability");   \
-} while (0)
+/////////////////////////////////////////////////////////////////////////////
+#include "libpick/pty.h"
+/////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
 struct choices_t {
@@ -35,9 +23,11 @@ struct choice_t {
 struct pick_ctx_t {
   struct choices_t choices;
   struct choice_t  choice;
+  struct Vector *choices_s_v;
   char             *description_seperator;
 };
 /////////////////////////////////////////////////////////////////////////////
 char *do_pick(struct pick_ctx_t *CTX);
+struct pick_ctx_t *pick_init_ctx(void);
 
 /////////////////////////////////////////////////////////////////////////////

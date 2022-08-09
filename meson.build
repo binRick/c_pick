@@ -29,14 +29,14 @@ inc = [include_directories(
   'submodules/c_deps/submodules',
   'submodules/c_deps/submodules/c_vector/src',
   'submodules/c_deps/submodules/c_vector/include',
-  'pick',
-  'pick-test',
+  'libpick',
+  'libpick-test',
   '.',
 )]
 #############################################################################
 subdir('submodules')
 #############################################################################
-subdir('pick')
+subdir('libpick')
 #############################################################################
-subdir('pick-test')
+subdir('libpick-test')
 #############################################################################
