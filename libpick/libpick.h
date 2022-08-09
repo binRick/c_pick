@@ -25,10 +25,12 @@ struct pick_ctx_t {
   struct choices_t choices;
   struct choice_t  choice;
   struct Vector    *choices_s_v;
+  bool             mutliple;
   char             description_seperator;
 };
 /////////////////////////////////////////////////////////////////////////////
-char *do_pick(struct pick_ctx_t *CTX);
+char *do_pick_single(struct pick_ctx_t *CTX);
+struct Vector *do_pick_multiple(struct pick_ctx_t *CTX);
 struct pick_ctx_t *pick_init_ctx(void);
 
 /////////////////////////////////////////////////////////////////////////////

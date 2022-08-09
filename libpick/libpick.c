@@ -66,7 +66,7 @@ static int                       isword(const char *);
 static size_t                    min_match(const char *, size_t, ssize_t *, ssize_t *);
 static size_t                    print_choices(size_t, size_t);
 static void                      print_line(const char *, size_t, int, ssize_t, ssize_t);
-static const struct choice_t *selected_choice(void);
+static const struct choice_t *selected_choice(struct pick_ctx_t *CTX);
 static size_t                    skipescseq(const char *);
 static const char *strcasechr(const char *, const char *);
 static void                      toggle_sigwinch(int);
@@ -78,6 +78,8 @@ static int                       tty_putc(int);
 static void                      tty_restore(int);
 static void                      tty_size(void);
 static int                       xmbtowc(wchar_t *, const char *);
+static struct Vector *do_pick(struct pick_ctx_t *CTX);
+static char *strip_picked_desc(struct pick_ctx_t *CTX, char *s);
 
 static struct termios        tio;
 struct choices_t             choices = { 0 };
@@ -92,16 +94,48 @@ static int                   use_alternate_screen = 1;
 static int                   use_keypad           = 1;
 
 
+char *do_pick_single(struct pick_ctx_t *CTX){
+  CTX->mutliple = false;
+  struct Vector *V = do_pick(CTX);
+  char          *s = NULL;
+  printf("single> vector len: %lu\n", vector_size(V));
+  if (vector_size(V) > 0) {
+    s = vector_get(V, 0);
+  }
+  printf("single> %s\n", s);
+
+  return(s);
+}
+struct Vector *do_pick_multiple(struct pick_ctx_t *CTX){
+  CTX->mutliple = true;
+  struct Vector *V = do_pick(CTX);
+  printf("multiple> vector len: %lu\n", vector_size(V));
+  return(V);
+}
+
 struct pick_ctx_t *pick_init_ctx(){
   struct pick_ctx_t *C = malloc(sizeof(struct pick_ctx_t));
 
   C->choices_s_v           = vector_new();
   C->description_seperator = '|';
+  C->mutliple              = false;
   return(C);
 }
 
 
-char *do_pick(struct pick_ctx_t *CTX){
+static char *strip_picked_desc(struct pick_ctx_t *CTX, char *s){
+  char                   *S           = s;
+  struct StringFNStrings choice_split = stringfn_split(s, CTX->description_seperator);
+
+  if (choice_split.count > 1) {
+    S = strdup(stringfn_mut_trim(choice_split.strings[0]));
+    stringfn_release_strings_struct(choice_split);
+  }
+  return(S);
+}
+
+static struct Vector *do_pick(struct pick_ctx_t *CTX){
+  struct Vector         *V = vector_new();
   const struct choice_t *choice;
   int                   c;
   int                   output_description = 0;
@@ -130,20 +164,21 @@ char *do_pick(struct pick_ctx_t *CTX){
 
   char *picked = NULL;
 
-  choice = selected_choice();
+  choice = selected_choice(CTX);
   tty_restore(1);
-  if (choice != NULL) {
+  if (true == CTX->mutliple && choices.length > 0) {
     for ( size_t i = 0; i < choices.length; i++ ) {
       if (choices.v[i].mark) {
-        printf("[sel mult] %s\n", choices.v[i].string);
+        vector_push(V, strip_picked_desc(CTX, strdup(choices.v[i].string)));
       }
     }
-    picked = strdup(choice->string);
-    goto done;
-  } else {
-    rc = 1;
   }
-done:
+  if (vector_size(V) == 0) {
+    if (choice != NULL) {
+      vector_push(V, strip_picked_desc(CTX, strdup(choice->string)));
+    }
+  }
+
   if (choices.v) {
     free(choices.v);
   }
@@ -151,13 +186,7 @@ done:
     free(query);
   }
 
-  struct StringFNStrings choice_split = stringfn_split(picked, CTX->description_seperator);
-
-  if (choice_split.count > 1) {
-    picked = strdup(stringfn_mut_trim(choice_split.strings[0]));
-    stringfn_release_strings_struct(choice_split);
-  }
-  return(picked);
+  return(V);
 } /* do_pick */
 
 
@@ -178,7 +207,7 @@ void load_choices(struct pick_ctx_t *CTX){
   }
 }
 
-const struct choice_t *selected_choice(void){
+const struct choice_t *selected_choice(struct pick_ctx_t *CTX){
   const char *buf;
   size_t     cursor_position, i, j, length, xscroll;
   size_t     choices_count = 0;
@@ -243,7 +272,16 @@ const struct choice_t *selected_choice(void){
     switch (get_key(&buf)) {
     case CTRL_T:
     case TAB:
-      choices.v[selection].mark = (choices.v[selection].mark) ? 0 : 1;
+      if (true == CTX->mutliple) {
+        choices.v[selection].mark = (choices.v[selection].mark) ? 0 : 1;
+      }else{
+      }
+      if (selection < choices_count - 1) {
+        selection++;
+        if (selection - yscroll == choices_lines) {
+          yscroll++;
+        }
+      }
       break;
     case ENTER:
       if (choices_count > 0) {
@@ -732,7 +770,7 @@ void print_line(const char *str, size_t len, int flags, ssize_t enter_underline,
     }
 
     if (str[i] == '\t') {
-      width = 8 - (col & 7);                    /* ceil to multiple of 8 */
+      width = 8 - (col & 7);
       if (col + width > tty_columns) {
         break;
       }
