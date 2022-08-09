@@ -19,6 +19,7 @@ struct choice_t {
   ssize_t match_start;                  /* inclusive match start offset */
   ssize_t match_end;                    /* exclusive match end offset */
   double  score;
+  int     mark;
 };
 struct pick_ctx_t {
   struct choices_t choices;

@@ -20,6 +20,11 @@
 #include "log.h/log.h"
 //////////////////////////////////////////////
 //////////////////////////////////////////////
+
+
+static int opt_mark;
+#define PL_STDOUT    0x01 /* standout flag */
+#define PL_MARKED    0x02 /* marked item */
 enum key {
   UNKNOWN   = 0,
   ALT_ENTER = 1,
@@ -44,6 +49,8 @@ enum key {
   END       = 20,
   HOME      = 21,
   PRINTABLE = 22,
+  CTRL_T    = 23,
+  TAB       = 24,
 };
 
 
@@ -126,6 +133,11 @@ char *do_pick(struct pick_ctx_t *CTX){
   choice = selected_choice();
   tty_restore(1);
   if (choice != NULL) {
+    for ( size_t i = 0; i < choices.length; i++ ) {
+      if (choices.v[i].mark) {
+        printf("[sel mult] %s\n", choices.v[i].string);
+      }
+    }
     picked = strdup(choice->string);
     goto done;
   } else {
@@ -229,6 +241,10 @@ const struct choice_t *selected_choice(void){
     fflush(tty_out);
 
     switch (get_key(&buf)) {
+    case CTRL_T:
+    case TAB:
+      choices.v[selection].mark = (choices.v[selection].mark) ? 0 : 1;
+      break;
     case ENTER:
       if (choices_count > 0) {
         return(&choices.v[selection]);
@@ -688,14 +704,19 @@ void tty_size(void) {
 }
 
 
-void print_line(const char *str, size_t len, int standout, ssize_t enter_underline,
+void print_line(const char *str, size_t len, int flags, ssize_t enter_underline,
                 ssize_t exit_underline){
   size_t       i;
   wchar_t      wc;
   unsigned int col;
   int          nbytes, width;
 
-  if (standout) {
+  if (flags & PL_MARKED) {        // *commander uses yellow...
+    tty_putp(enter_bold_mode, 1); // it works but i liked without it
+    tty_putp(tty_parm1(set_a_foreground, 3), 1);
+  }
+
+  if (flags & PL_STDOUT) {
     tty_putp(enter_standout_mode, 1);
   }
 
@@ -787,7 +808,9 @@ size_t print_choices(size_t offset, size_t selection) {
 
     if (i - offset < choices_lines) {
       print_line(choice->string, choice->length,
-                 i == selection, choice->match_start,
+                 ((i == selection) ? PL_STDOUT : 0) | \
+                 ((choice->mark) ? PL_MARKED : 0),
+                 choice->match_start,
                  choice->match_end);
     }
   }
@@ -850,6 +873,10 @@ enum key get_key(const char **key) {
         "\017"),
     KEY(CTRL_U,
         "\025"),
+    KEY(TAB,
+        "\t"),
+    KEY(CTRL_T,
+        "\024"),
     KEY(CTRL_W,
         "\027"),
     KEY(CTRL_W,
