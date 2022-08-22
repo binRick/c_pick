@@ -31,7 +31,6 @@ extern int unused;
 #define TOOSMALL    2
 #define TOOLARGE    3
 
-
 long long strtonum(const char *numstr, long long minval, long long maxval,
                    const char **errstrp){
   long long ll    = 0;

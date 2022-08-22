@@ -21,7 +21,6 @@
 //////////////////////////////////////////////
 //////////////////////////////////////////////
 
-
 static int opt_mark;
 #define PL_STDOUT    0x01 /* standout flag */
 #define PL_MARKED    0x02 /* marked item */
@@ -52,7 +51,6 @@ enum key {
   CTRL_T    = 23,
   TAB       = 24,
 };
-
 
 static int                       choicecmp(const void *, const void *);
 static void                      delete_between(char *, size_t, size_t, size_t);
@@ -93,7 +91,6 @@ static int                   sort                 = 1;
 static int                   use_alternate_screen = 1;
 static int                   use_keypad           = 1;
 
-
 char *do_pick_single(struct pick_ctx_t *CTX){
   CTX->mutliple = false;
   struct Vector *V = do_pick(CTX);
@@ -117,7 +114,6 @@ struct pick_ctx_t *pick_init_ctx(){
   C->mutliple              = false;
   return(C);
 }
-
 
 static char *strip_picked_desc(struct pick_ctx_t *CTX, char *s){
   char                   *S           = s;
@@ -170,7 +166,6 @@ static struct Vector *do_pick(struct pick_ctx_t *CTX){
 
   return(V);
 } /* do_pick */
-
 
 void load_choices(struct pick_ctx_t *CTX){
   choices.length = vector_size(CTX->choices_s_v);
@@ -440,7 +435,6 @@ const struct choice_t *selected_choice(struct pick_ctx_t *CTX){
   }
 }     /* selected_choice */
 
-
 /*
  * Filter the first nchoices number of choices using the current query and
  * regularly check for new user input in order to abort filtering. This
@@ -482,7 +476,6 @@ int filter_choices(size_t nchoices) {
   return(1);
 }
 
-
 int choicecmp(const void *p1, const void *p2) {
   const struct choice_t *c1, *c2;
 
@@ -509,7 +502,6 @@ int choicecmp(const void *p1, const void *p2) {
   }
   return(0);
 }
-
 
 size_t min_match(const char *string, size_t offset, ssize_t *start, ssize_t *end) {
   const char *e, *q, *s;
@@ -543,7 +535,6 @@ size_t min_match(const char *string, size_t offset, ssize_t *start, ssize_t *end
   return(*end - *start);
 }
 
-
 /*
  * Returns a pointer to first occurrence of the first character in s2 in s1 with
  * respect to Unicode characters disregarding case.
@@ -569,7 +560,6 @@ const char *strcasechr(const char *s1, const char *s2) {
 
   return(NULL);
 }
-
 
 /*
  * Returns the length of a CSI or OSC escape sequence located at the beginning
@@ -597,7 +587,6 @@ size_t skipescseq(const char *str) {
 
   return(i + 1);
 }
-
 
 void tty_init(int doinit) {
   struct termios new_attributes;
@@ -635,7 +624,6 @@ void tty_init(int doinit) {
   toggle_sigwinch(0);
 }
 
-
 int tty_putc(int c) {
   if (putc(c, tty_out) == EOF) {
     err(1, "putc");
@@ -644,11 +632,9 @@ int tty_putc(int c) {
   return(c);
 }
 
-
 void handle_sigwinch(int sig) {
   gotsigwinch = sig == SIGWINCH;
 }
-
 
 void toggle_sigwinch(int enable) {
   struct sigaction sa;
@@ -661,7 +647,6 @@ void toggle_sigwinch(int enable) {
     err(1, "sigaction: SIGWINCH");
   }
 }
-
 
 void tty_restore(int doclose) {
   tcsetattr(fileno(tty_in), TCSANOW, &tio);
@@ -685,7 +670,6 @@ void tty_restore(int doclose) {
     fflush(tty_out);
   }
 }
-
 
 void tty_size(void) {
   struct winsize ws;
@@ -722,7 +706,6 @@ void tty_size(void) {
 
   choices_lines = tty_lines - 1;        /* available lines, minus query line */
 }
-
 
 void print_line(const char *str, size_t len, int flags, ssize_t enter_underline,
                 ssize_t exit_underline){
@@ -809,7 +792,6 @@ void print_line(const char *str, size_t len, int flags, ssize_t enter_underline,
    */
   tty_putp(exit_attribute_mode, 1);
 } /* print_line */
-
 
 /*
  * Output as many choices as possible starting from offset and return the number
@@ -1060,7 +1042,6 @@ enum key get_key(const char **key) {
   return(PRINTABLE);
 } /* get_key */
 
-
 int tty_getc(void) {
   int c;
 
@@ -1070,7 +1051,6 @@ int tty_getc(void) {
 
   return(c);
 }
-
 
 const char *tty_getcap(char *cap) {
   char *str;
@@ -1083,26 +1063,21 @@ const char *tty_getcap(char *cap) {
   return(str);
 }
 
-
 const char *tty_parm1(char *cap, int a) {
   return(tparm(cap, a, 0, 0, 0, 0, 0, 0, 0, 0));
 }
-
 
 void delete_between(char *string, size_t length, size_t start, size_t end) {
   memmove(string + start, string + end, length - end + 1);
 }
 
-
 int isu8cont(unsigned char c) {
   return(MB_CUR_MAX > 1 && (c & (0x80 | 0x40)) == 0x80);
 }
 
-
 int isu8start(unsigned char c) {
   return(MB_CUR_MAX > 1 && (c & (0x80 | 0x40)) == (0x80 | 0x40));
 }
-
 
 int isword(const char *s) {
   wchar_t wc;
@@ -1113,7 +1088,6 @@ int isword(const char *s) {
 
   return(iswalnum(wc) || wc == L'_');
 }
-
 
 int xmbtowc(wchar_t *wc, const char *s) {
   int n;

@@ -33,7 +33,6 @@ static const char *pickenv[] = {
 };
 static int        gotsig;
 
-
 int main(int argc, char *argv[]) {
   char  *keys = NULL;
   pid_t pid;
@@ -94,13 +93,11 @@ int main(int argc, char *argv[]) {
   return(0);
 } /* main */
 
-
 __dead static void usage(void) {
   fprintf(stderr, "usage: pick-test [-k path] -- utility "
           "[argument ...]\n");
   exit(1);
 }
-
 
 static char *parsekeys(const char *path) {
   FILE   *fh;
@@ -147,11 +144,9 @@ static char *parsekeys(const char *path) {
   return(buf);
 } /* parsekeys */
 
-
 static void sighandler(int sig) {
   gotsig = sig == SIGCHLD;
 }
-
 
 __dead static void child(int master, int slave, int argc, char **argv) {
   const char     **env;
@@ -217,7 +212,6 @@ __dead static void child(int master, int slave, int argc, char **argv) {
   execlp("sh", "sh", "-c", cmd, NULL);
   err(1, "sh");
 } /* child */
-
 
 static void parent(int master, int slave, const char *keys) {
   char           buf[BUFSIZ];

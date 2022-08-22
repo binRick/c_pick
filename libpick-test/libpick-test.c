@@ -1,7 +1,6 @@
 #include "c_vector/include/vector.h"
 #include "libpick/libpick.h"
 
-
 int main(int argc, char *argv[]){
   struct pick_ctx_t *CTX = pick_init_ctx();
 
@@ -19,4 +18,3 @@ int main(int argc, char *argv[]){
     fprintf(stdout, "You didn't pick an option\n");
   }
 }
-
