@@ -21,7 +21,7 @@ libpick_dirs = [
   '.',
   inc,
 ]
-libpick_lib = static_library('libpick',
+libpick_lib = library('libpick',
   libpick_srcs,
   dependencies: libpick_deps,
   c_args: libpick_c_args,

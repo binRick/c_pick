@@ -15,13 +15,10 @@
 #include <wctype.h>
 //////////////////////////////////////////////
 #include "c_stringfn/include/stringfn.h"
-#include "c_vector/include/vector.h"
+#include "c_vector/vector/vector.h"
 #include "libpick.h"
-#include "log.h/log.h"
+#include "log/log.h"
 //////////////////////////////////////////////
-//////////////////////////////////////////////
-
-static int opt_mark;
 #define PL_STDOUT    0x01 /* standout flag */
 #define PL_MARKED    0x02 /* marked item */
 enum key {
@@ -86,7 +83,6 @@ static char                  *query;
 static size_t                query_length, query_size;
 static volatile sig_atomic_t gotsigwinch;
 static unsigned int          choices_lines, tty_columns, tty_lines;
-static int                   descriptions;
 static int                   sort                 = 1;
 static int                   use_alternate_screen = 1;
 static int                   use_keypad           = 1;
@@ -127,8 +123,7 @@ static char *strip_picked_desc(struct pick_ctx_t *CTX, char *s){
 }
 
 static struct Vector *do_pick(struct pick_ctx_t *CTX){
-  char                  *picked = NULL;
-  struct Vector         *V      = vector_new();
+  struct Vector         *V = vector_new();
   const struct choice_t *choice;
 
   setlocale(LC_CTYPE, "");

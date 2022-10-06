@@ -1,4 +1,4 @@
-#include "c_vector/include/vector.h"
+#include "c_vector/vector/vector.h"
 #include "libpick/libpick.h"
 
 int main(int argc, char *argv[]){

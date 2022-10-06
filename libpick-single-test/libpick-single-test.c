@@ -1,7 +1,7 @@
-#include "c_vector/include/vector.h"
+#include "c_vector/vector/vector.h"
 #include "libpick/libpick.h"
 
-int main(int argc, char *argv[]){
+int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]){
   struct pick_ctx_t *CTX = pick_init_ctx();
 
   vector_push(CTX->choices_s_v, "opt 0");

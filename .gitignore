@@ -29,3 +29,5 @@ loc.sh
 *.log
 .bin/
 submodules/c_deps
+.meson.build*.log
+.meson-build*.log
